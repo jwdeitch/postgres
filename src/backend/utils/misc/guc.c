@@ -7828,6 +7828,29 @@ write_auto_conf_file(int fd, const char *filename, ConfigVariable *head)
 	pfree(buf.data);
 }
 
+static bool
+check_for_invalid_config_combinations(); {
+	/*
+	 * Check for invalid combinations of GUC settings.
+	 */
+	if (ReservedBackends >= MaxConnections)
+	{
+		ereport(ERROR,
+				(errmsg("%s: superuser_reserved_connections (%d) must be less than max_connections (%d)\n",
+						progname,
+						ReservedBackends, MaxConnections)));
+	}
+	
+	if (XLogArchiveMode > ARCHIVE_MODE_OFF && wal_level == WAL_LEVEL_MINIMAL)
+		ereport(ERROR,
+				(errmsg("WAL archival cannot be enabled when wal_level is \"minimal\"")));
+	
+	if (max_wal_senders > 0 && wal_level == WAL_LEVEL_MINIMAL)
+		ereport(ERROR,
+				(errmsg("WAL streaming (max_wal_senders > 0) requires wal_level \"replica\" or \"logical\"")));
+
+}
+
 /*
  * Update the given list of configuration parameters, adding, replacing
  * or deleting the entry for item "name" (delete if "value" == NULL).
@@ -7988,7 +8011,9 @@ AlterSystemSetConfigFile(AlterSystemStmt *altersysstmt)
 						(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
 						 errmsg("invalid value for parameter \"%s\": \"%s\"",
 								name, value)));
-
+			
+			check_for_invalid_config_combinations();
+			
 			if (record->vartype == PGC_STRING && newval.stringval != NULL)
 				free(newval.stringval);
 			if (newextra)
