@@ -8012,8 +8012,6 @@ AlterSystemSetConfigFile(AlterSystemStmt *altersysstmt)
 						 errmsg("invalid value for parameter \"%s\": \"%s\"",
 								name, value)));
 			
-			check_for_invalid_config_combinations();
-			
 			if (record->vartype == PGC_STRING && newval.stringval != NULL)
 				free(newval.stringval);
 			if (newextra)

@@ -1,12 +1,17 @@
 #!/usr/bin/env bash
 set -e
-
+useradd -ms /bin/bash postgres
 rm -rf /home/postgres/pgdata/
 mkdir /home/postgres/pgdata/
-pg_ctl initdb --pgdata=/home/postgres/pgdata/
+chown postgres:postgres /home/postgres/pgdata/
+chown postgres:postgres /home/postgres/
+
+su postgres
+cd
+/usr/local/pgsql/bin/pg_ctl initdb --pgdata=/home/postgres/pgdata/
 /usr/local/pgsql/bin/pg_ctl -D /home/postgres/pgdata -l logfile start
 
-psql -C "alter system set superuser_reserved_connections = 10; alter system set max_connections = 5;"
+/usr/local/pgsql/bin/psql -C "alter system set superuser_reserved_connections = 10; alter system set max_connections = 5;"
 
 /usr/local/pgsql/bin/pg_ctl stop -D /home/postgres/pgdata
 
