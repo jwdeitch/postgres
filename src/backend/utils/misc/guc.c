@@ -7828,8 +7828,8 @@ write_auto_conf_file(int fd, const char *filename, ConfigVariable *head)
 	pfree(buf.data);
 }
 
-static bool
-check_for_invalid_config_combinations(); {
+void
+check_for_invalid_config_combinations() {
 	/*
 	 * Check for invalid combinations of GUC settings.
 	 */
@@ -7848,7 +7848,7 @@ check_for_invalid_config_combinations(); {
 	if (max_wal_senders > 0 && wal_level == WAL_LEVEL_MINIMAL)
 		ereport(ERROR,
 				(errmsg("WAL streaming (max_wal_senders > 0) requires wal_level \"replica\" or \"logical\"")));
-
+	
 }
 
 /*
