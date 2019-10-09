@@ -7851,23 +7851,23 @@ check_for_invalid_config_combinations(ConfigVariable **conf) {
 			if (!pitem->ignore) {
 				if (guc_name_compare(item->name, "superuser_reserved_connections") == 0 &&
 						guc_name_compare(pitem->name, "max_connections") == 0) {
-					int reservedbackends;
-					int maxconnections;
-					if (!parse_int(item->value, &maxconnections, 0, NULL)) {
+					int reserved_backends;
+					int max_connections;
+					if (!parse_int(item->value, &max_connections, 0, NULL)) {
 						ereport(ERROR,
 								(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
 										errmsg("invalid value for parameter \"%s\": \"%s\"",
 											   item->name, item->value)));
 					}
 
-					if (!parse_int(pitem->value, &reservedbackends, 0, NULL)) {
+					if (!parse_int(pitem->value, &reserved_backends, 0, NULL)) {
 						ereport(ERROR,
 								(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
 										errmsg("invalid value for parameter \"%s\": \"%s\"",
 											   item->name, item->value)));
 					}
 					
-					if (reservedbackends >= maxconnections)
+					if (reserved_backends >= max_connections)
 					{
 						ereport(ERROR,
 								(errmsg("%s: superuser_reserved_connections (%d) must be less than max_connections (%d)\n",
@@ -7878,23 +7878,23 @@ check_for_invalid_config_combinations(ConfigVariable **conf) {
 
 				if (guc_name_compare(item->name, "archive_mode") == 0 &&
 					guc_name_compare(pitem->name, "wal_level") == 0) {
-					int wallevel;
-					int xlogarchivemode;
-					if (!parse_int(item->value, &xlogarchivemode, 0, NULL)) {
+					int WalLevel;
+					int xlog_archive_mode;
+					if (!parse_int(item->value, &xlog_archive_mode, 0, NULL)) {
 						ereport(ERROR,
 								(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
 										errmsg("invalid value for parameter \"%s\": \"%s\"",
 											   item->name, item->value)));
 					}
 
-					if (!parse_int(pitem->value, &wallevel, 0, NULL)) {
+					if (!parse_int(pitem->value, &WalLevel, 0, NULL)) {
 						ereport(ERROR,
 								(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
 										errmsg("invalid value for parameter \"%s\": \"%s\"",
 											   item->name, item->value)));
 					}
 
-					if (xlogarchivemode > ARCHIVE_MODE_OFF && wallevel == WAL_LEVEL_MINIMAL)
+					if (xlog_archive_mode > ARCHIVE_MODE_OFF && WalLevel == WAL_LEVEL_MINIMAL)
 					{
 						ereport(ERROR,
 								(errmsg("WAL archival cannot be enabled when wal_level is \"minimal\"")));
@@ -7903,23 +7903,23 @@ check_for_invalid_config_combinations(ConfigVariable **conf) {
 
 				if (guc_name_compare(item->name, "max_wal_senders") == 0 &&
 					guc_name_compare(pitem->name, "wal_level") == 0) {
-					int wallevel;
-					int maxwalsenders;
-					if (!parse_int(item->value, &maxwalsenders, 0, NULL)) {
+					int WalLevel;
+					int max_wal_senders;
+					if (!parse_int(item->value, &max_wal_senders, 0, NULL)) {
 						ereport(ERROR,
 								(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
 										errmsg("invalid value for parameter \"%s\": \"%s\"",
 											   item->name, item->value)));
 					}
 
-					if (!parse_int(pitem->value, &wallevel, 0, NULL)) {
+					if (!parse_int(pitem->value, &WalLevel, 0, NULL)) {
 						ereport(ERROR,
 								(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
 										errmsg("invalid value for parameter \"%s\": \"%s\"",
 											   item->name, item->value)));
 					}
 
-					if (maxwalsenders > ARCHIVE_MODE_OFF && wallevel == WAL_LEVEL_MINIMAL)
+					if (max_wal_senders > ARCHIVE_MODE_OFF && WalLevel == WAL_LEVEL_MINIMAL)
 					{
 						ereport(ERROR,
 								(errmsg("WAL archival cannot be enabled when wal_level is \"minimal\"")));
