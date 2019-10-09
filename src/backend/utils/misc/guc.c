@@ -7828,27 +7828,106 @@ write_auto_conf_file(int fd, const char *filename, ConfigVariable *head)
 	pfree(buf.data);
 }
 
+/*
+ * This function traverses a list of parameters
+ * to check for invalid config combinations
+ */
 void
-check_for_invalid_config_combinations() {
-	/*
-	 * Check for invalid combinations of GUC settings.
-	 */
-	if (ReservedBackends >= MaxConnections)
+check_for_invalid_config_combinations(ConfigVariable **conf) {
+	ConfigVariable *item, *next;
+
+	for (item = *conf; item != NULL; item = next)
 	{
-		ereport(ERROR,
-				(errmsg("%s: superuser_reserved_connections (%d) must be less than max_connections (%d)\n",
-						progname,
-						ReservedBackends, MaxConnections)));
+		next = item->next;
+		ConfigVariable *pitem, *pnext;
+		
+		/*
+		 * We could avoid the O(N^2) behavior here with some additional 
+		 * state, but it seems unlikely to be worth the trouble.
+		 */
+		for (pitem = *conf; pitem != NULL; pitem = pnext)
+		{	
+			pnext = pitem->next;
+			if (!pitem->ignore) {
+				if (guc_name_compare(item->name, "superuser_reserved_connections") == 0 &&
+						guc_name_compare(pitem->name, "max_connections") == 0) {
+					int reservedbackends;
+					int maxconnections;
+					if (!parse_int(item->value, &maxconnections, 0, NULL)) {
+						ereport(ERROR,
+								(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+										errmsg("invalid value for parameter \"%s\": \"%s\"",
+											   item->name, item->value)));
+					}
+
+					if (!parse_int(pitem->value, &reservedbackends, 0, NULL)) {
+						ereport(ERROR,
+								(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+										errmsg("invalid value for parameter \"%s\": \"%s\"",
+											   item->name, item->value)));
+					}
+					
+					if (reservedbackends >= maxconnections)
+					{
+						ereport(ERROR,
+								(errmsg("%s: superuser_reserved_connections (%d) must be less than max_connections (%d)\n",
+										progname,
+										ReservedBackends, MaxConnections)));
+					}
+				}
+
+				if (guc_name_compare(item->name, "archive_mode") == 0 &&
+					guc_name_compare(pitem->name, "wal_level") == 0) {
+					int wallevel;
+					int xlogarchivemode;
+					if (!parse_int(item->value, &xlogarchivemode, 0, NULL)) {
+						ereport(ERROR,
+								(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+										errmsg("invalid value for parameter \"%s\": \"%s\"",
+											   item->name, item->value)));
+					}
+
+					if (!parse_int(pitem->value, &wallevel, 0, NULL)) {
+						ereport(ERROR,
+								(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+										errmsg("invalid value for parameter \"%s\": \"%s\"",
+											   item->name, item->value)));
+					}
+
+					if (xlogarchivemode > ARCHIVE_MODE_OFF && wallevel == WAL_LEVEL_MINIMAL)
+					{
+						ereport(ERROR,
+								(errmsg("WAL archival cannot be enabled when wal_level is \"minimal\"")));
+					}
+				}
+
+				if (guc_name_compare(item->name, "max_wal_senders") == 0 &&
+					guc_name_compare(pitem->name, "wal_level") == 0) {
+					int wallevel;
+					int maxwalsenders;
+					if (!parse_int(item->value, &maxwalsenders, 0, NULL)) {
+						ereport(ERROR,
+								(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+										errmsg("invalid value for parameter \"%s\": \"%s\"",
+											   item->name, item->value)));
+					}
+
+					if (!parse_int(pitem->value, &wallevel, 0, NULL)) {
+						ereport(ERROR,
+								(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+										errmsg("invalid value for parameter \"%s\": \"%s\"",
+											   item->name, item->value)));
+					}
+
+					if (maxwalsenders > ARCHIVE_MODE_OFF && wallevel == WAL_LEVEL_MINIMAL)
+					{
+						ereport(ERROR,
+								(errmsg("WAL archival cannot be enabled when wal_level is \"minimal\"")));
+					}
+				}
+			}
+		}
 	}
-	
-	if (XLogArchiveMode > ARCHIVE_MODE_OFF && wal_level == WAL_LEVEL_MINIMAL)
-		ereport(ERROR,
-				(errmsg("WAL archival cannot be enabled when wal_level is \"minimal\"")));
-	
-	if (max_wal_senders > 0 && wal_level == WAL_LEVEL_MINIMAL)
-		ereport(ERROR,
-				(errmsg("WAL streaming (max_wal_senders > 0) requires wal_level \"replica\" or \"logical\"")));
-	
 }
 
 /*
@@ -8076,6 +8155,9 @@ AlterSystemSetConfigFile(AlterSystemStmt *altersysstmt)
 			FreeFile(infile);
 		}
 
+		ConfigVariable *conf = ProcessConfigFileInternal(PGC_SIGHUP, false, DEBUG3);
+		check_for_invalid_config_combinations(&conf);
+		
 		/*
 		 * Now, replace any existing entry with the new value, or add it if
 		 * not present.
