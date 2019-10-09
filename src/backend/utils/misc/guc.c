@@ -7919,10 +7919,10 @@ check_for_invalid_config_combinations(ConfigVariable **conf) {
 											   item->name, item->value)));
 					}
 
-					if (max_wal_senders > ARCHIVE_MODE_OFF && WalLevel == WAL_LEVEL_MINIMAL)
+					if (max_wal_senders > 0 && WalLevel == WAL_LEVEL_MINIMAL)
 					{
 						ereport(ERROR,
-								(errmsg("WAL archival cannot be enabled when wal_level is \"minimal\"")));
+								(errmsg("WAL streaming (max_wal_senders > 0) requires wal_level \"replica\" or \"logical\"")));
 					}
 				}
 			}
