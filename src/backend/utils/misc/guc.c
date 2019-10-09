@@ -8153,10 +8153,15 @@ AlterSystemSetConfigFile(AlterSystemStmt *altersysstmt)
 								AutoConfFileName)));
 
 			FreeFile(infile);
+
+			/*
+			 * Check to ensure change is valid in combination
+			 * with other configuration settings.
+			 */
+			ConfigVariable *conf = ProcessConfigFileInternal(PGC_SIGHUP, false, DEBUG3);
+			check_for_invalid_config_combinations(&conf);
 		}
 
-		ConfigVariable *conf = ProcessConfigFileInternal(PGC_SIGHUP, false, DEBUG3);
-		check_for_invalid_config_combinations(&conf);
 		
 		/*
 		 * Now, replace any existing entry with the new value, or add it if
