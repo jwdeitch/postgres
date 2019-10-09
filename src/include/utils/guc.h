@@ -354,7 +354,7 @@ extern bool SelectConfigFiles(const char *userDoption, const char *progname);
 extern void ResetAllOptions(void);
 extern void AtStart_GUC(void);
 extern int	NewGUCNestLevel(void);
-extern void check_for_invalid_config_combinations(void);
+extern void check_for_invalid_config_combinations(ConfigVariable **conf);
 extern void AtEOXact_GUC(bool isCommit, int nestLevel);
 extern void BeginReportingGUCOptions(void);
 extern void ParseLongOption(const char *string, char **name, char **value);

@@ -883,7 +883,7 @@ PostmasterMain(int argc, char *argv[])
 	/* And switch working directory into it */
 	ChangeToDataDir();
 	
-	check_for_invalid_config_combinations();
+//	check_for_invalid_config_combinations();
 	
 	/*
 	 * Other one-time internal sanity checks can go here, if they are fast.
